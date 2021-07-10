@@ -1,3 +1,23 @@
+# %%
+##### Downloading Pretrained Google Word2Vec Model
+import os, zipfile, io, requests, gensim
+from gensim.models import Word2Vec
+from gensim.models import KeyedVectors
+
+print('Downloading...')
+# Download class resources...
+r = requests.get("https://www.dropbox.com/s/uq9w6e93gccd152/google_news.zip?dl=1")
+z = zipfile.ZipFile(io.BytesIO(r.content))
+z.extractall()
+print('Loading downloaded files...')
+file_name = 'GoogleNews-vectors-negative300.bin'
+dir_name = 'google_news'
+file_path = os.path.join(dir_name, file_name)
+model1 = KeyedVectors.load_word2vec_format(file_path, binary=True)
+model1.init_sims(replace=True)
+
+
+# %%
 ###### Import Libraries ######
 import pandas as pd
 import numpy as np
@@ -159,3 +179,4 @@ print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ",
 #         max_accuracy_neighbors = i
 
 # print(f"Maximum Accuracy obtained was {max_accuracy} with {max_accuracy_neighbors}")
+# %%
