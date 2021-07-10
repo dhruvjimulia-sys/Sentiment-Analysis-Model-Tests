@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
@@ -47,11 +48,11 @@ def bag_of_words(X, y):
     print("Starting Bag of Words Model")
     with open("is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
-            print("Did not find created model. Creating new model...")
+            print("Did not find vectorizer. Creating new vectorizer...")
             bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
             pickle.dump(bow_transformer, open("bow_transformer.pickle", "wb"))
         else:
-            print("Model Found. Loading Model...")
+            print("Vectorizer Found. Loading Vectorizer...")
             bow_transformer = pickle.load(open("bow_transformer.pickle", "rb"))
         X = bow_transformer.transform(X)
         y = convert_y(y)
@@ -66,11 +67,11 @@ def tf_idf(X, y):
     print("Starting TF-IDF Model")
     with open("is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
-            print("Did not find created model. Creating new model...")
+            print("Did not find vectorizer. Creating new vectorizer...")
             tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X)
             pickle.dump(tfidf_transformer, open("tfidf_transformer.pickle", "wb"))
         else:
-            print("Model Found. Loading Model...")
+            print("Vectorizer Found. Loading Vectorizer...")
             tfidf_transformer = pickle.load(open("tfidf_transformer.pickle", "rb"))            
         X = tfidf_transformer.transform(X)
         y = convert_y(y)
@@ -79,7 +80,15 @@ def tf_idf(X, y):
         fout.write("True")
     return X, y
 
-##### Pre-trained Word Embeddings (Word2Vec)
+##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
+##### Hyperparams: 
+def word2vec(X, y):
+    print("Starting Word2Vec Model")
+    with open("is_model_created", "r") as fin:
+        if ('False' in fin.read()):
+            print("Did not find vectorizer. Created new vectorizer...")
+        else:
+            print("")
 
 
 
@@ -108,25 +117,45 @@ def knn_classifier(X, y, number_neighbors):
     print("KNN Classifier created")
     return y_test, y_pred
 
+
+##### Naive Bayes Classifier
+##### Hyperparams: train_test_split
+def naive_bayes(X, y):
+    print("Started creation of Naive Bayes Classifier")
+    nb_model = MultinomialNB()
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
+    nb_model.fit(X_train, y_train)
+    y_pred = nb_model.predict(X_test)
+    print("Naive Bayes Classifier created")
+    return y_test, y_pred
+
 ##### Applying Models And Printing Accuracy #####
 X, y = tf_idf(imdb['review'], imdb['sentiment'])
+y_test, y_pred = naive_bayes(X, y)
 
-max_accuracy = -1
-max_accuracy_neighbors = 0
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
 
-for i in range(20, 100):
-    print(f"Number of neighbors: {i}")
-    y_test, y_pred = knn_classifier(X, y, i)
+print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall ", round(recall, 2))
 
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
+##### KNN Classifier Implementation
+# max_accuracy = -1
+# max_accuracy_neighbors = 0
 
-    print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall ", round(recall, 2))
-    print("\n")
+# for i in range(1, 100):
+#     print(f"Number of neighbors: {i}")
+#     y_test, y_pred = knn_classifier(X, y, i)
 
-    if (accuracy > max_accuracy):
-        max_accuracy = accuracy
-        max_accuracy_neighbors = i
+#     accuracy = accuracy_score(y_test, y_pred)
+#     precision = precision_score(y_test, y_pred)
+#     recall = recall_score(y_test, y_pred)
 
-print(f"Maximum Accuracy obtained was {max_accuracy} with {max_accuracy_neighbors}")
+#     print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall ", round(recall, 2))
+#     print("\n")
+
+#     if (accuracy > max_accuracy):
+#         max_accuracy = accuracy
+#         max_accuracy_neighbors = i
+
+# print(f"Maximum Accuracy obtained was {max_accuracy} with {max_accuracy_neighbors}")
