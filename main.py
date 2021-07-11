@@ -1,23 +1,3 @@
-# %%
-##### Downloading Pretrained Google Word2Vec Model
-import os, zipfile, io, requests, gensim
-from gensim.models import Word2Vec
-from gensim.models import KeyedVectors
-
-print('Downloading...')
-# Download class resources...
-r = requests.get("https://www.dropbox.com/s/uq9w6e93gccd152/google_news.zip?dl=1")
-z = zipfile.ZipFile(io.BytesIO(r.content))
-z.extractall()
-print('Loading downloaded files...')
-file_name = 'GoogleNews-vectors-negative300.bin'
-dir_name = 'google_news'
-file_path = os.path.join(dir_name, file_name)
-model1 = KeyedVectors.load_word2vec_format(file_path, binary=True)
-model1.init_sims(replace=True)
-
-
-# %%
 ###### Import Libraries ######
 import pandas as pd
 import numpy as np
@@ -26,7 +6,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
@@ -51,7 +31,6 @@ def convert_y(sentiments):
     for sentiment in sentiments:
         converted_list.append(1 if sentiment == 'positive' else 0)
     return np.array(converted_list)
-
 
 ###### Loading Data ######
 imdb = pd.read_csv('../imdbDataset.csv')
@@ -104,13 +83,29 @@ def tf_idf(X, y):
 ##### Hyperparams: 
 def word2vec(X, y):
     print("Starting Word2Vec Model")
-    with open("is_model_created", "r") as fin:
+    with open("is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
-            print("Did not find vectorizer. Created new vectorizer...")
+            print("Using pretrained Spacy vectors to train model")
+            print("No reviews found. Converting reviews to vectors...")
+            vectorized_reviews = []
+            for index, review in enumerate(X):
+                avg_vector = [0] * 300 
+                for token in tokenize(review):
+                    avg_vector += nlp(token).vector
+                avg_vector = avg_vector / len(X)
+                vectorized_reviews.append(avg_vector)
+                print(f"Review {index}: Done")
+            pickle.dump(vectorized_reviews, open("word2vec_reviews.pickle", "wb"))
         else:
-            print("")
-
-
+            print("Vectorized reviews found. Loading word vectors...")
+            vectorized_reviews = pickle.load(open("word2vec_reviews.pickle", "rb"))
+            for index, vector in enumerate(vectorized_reviews):
+                vectorized_reviews[index] = vector + 1
+    y = convert_y(y)    
+    print("Word2Vec Model Created")
+    with open("is_vectorizer_created", "w") as fout:
+        fout.write("True")
+    return vectorized_reviews, y
 
 ##### BERT Language Model
 
@@ -142,7 +137,7 @@ def knn_classifier(X, y, number_neighbors):
 ##### Hyperparams: train_test_split
 def naive_bayes(X, y):
     print("Started creation of Naive Bayes Classifier")
-    nb_model = MultinomialNB()
+    nb_model = GaussianNB()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
     nb_model.fit(X_train, y_train)
     y_pred = nb_model.predict(X_test)
@@ -151,7 +146,7 @@ def naive_bayes(X, y):
 
 ##### Applying Models And Printing Accuracy #####
 X, y = tf_idf(imdb['review'], imdb['sentiment'])
-y_test, y_pred = naive_bayes(X, y)
+y_test, y_pred = logistic_regression(X, y)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
@@ -163,7 +158,7 @@ print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ",
 # max_accuracy = -1
 # max_accuracy_neighbors = 0
 
-# for i in range(1, 100):
+# for i in range(1, 10):
 #     print(f"Number of neighbors: {i}")
 #     y_test, y_pred = knn_classifier(X, y, i)
 
@@ -179,4 +174,3 @@ print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ",
 #         max_accuracy_neighbors = i
 
 # print(f"Maximum Accuracy obtained was {max_accuracy} with {max_accuracy_neighbors}")
-# %%
