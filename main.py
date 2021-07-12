@@ -6,13 +6,15 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
 nlp = spacy.load("en_core_web_md")
 
 import pickle
+
+from tensorflow import keras 
 
 print("Imports complete")
 
@@ -111,11 +113,11 @@ def word2vec(X, y):
 
 ##### Model Types ######
 ##### Logistic Regression
-##### Hyperparams: train_test_split
+##### Hyperparams: train_test_split, regularization_type, C, 
 def logistic_regression(X, y):
     print("Starting creation of Logistic Regression Model")
     logistic_model = LogisticRegression()
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
     logistic_model.fit(X_train, y_train)
     y_pred = logistic_model.predict(X_test)
     print("Logistic Regression Model created")
@@ -137,16 +139,33 @@ def knn_classifier(X, y, number_neighbors):
 ##### Hyperparams: train_test_split
 def naive_bayes(X, y):
     print("Started creation of Naive Bayes Classifier")
-    nb_model = GaussianNB()
+    nb_model = MultinomialNB()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
     nb_model.fit(X_train, y_train)
     y_pred = nb_model.predict(X_test)
     print("Naive Bayes Classifier created")
     return y_test, y_pred
 
+##### Neural Network
+##### Hyperparams: train_test_split, Architecture, Optimizer: Learning Rate, Epochs, Batch Size, Initial Weights, Initial Biases
+#####              Epochs, Loss Function,
+def neural_network(X, y):
+    print("Started creation of Neural Network")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
+    model = keras.Sequential([
+        keras.layers.Dense(300, activation="leaky_relu"),
+        keras.layers.Dense(128, activation="leaky_relu"),
+        keras.layers.Dense(2, activation="softmax")
+    ])
+    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    model.fit(X_train, y_train, epochs=5)
+    y_pred = model.predict(X_test)
+    print("Neural Network Created")
+    return y_test, y_pred
+
 ##### Applying Models And Printing Accuracy #####
 X, y = tf_idf(imdb['review'], imdb['sentiment'])
-y_test, y_pred = logistic_regression(X, y)
+y_test, y_pred = neural_network(X, y)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
