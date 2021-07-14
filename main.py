@@ -37,6 +37,13 @@ def convert_y(sentiments):
     for sentiment in sentiments:
         converted_list.append(1 if sentiment == 'positive' else 0)
     return np.array(converted_list)
+# Normalization function before neural network: normalizes all values between 0 and 1
+def normalize(arr):
+    max_val = np.max(arr)
+    min_val = np.min(arr)
+    # normalized_array = np.array([2 * ((val - min_val)/(max_val - min_val)) for val in arr])
+    normalized_array = (arr - min_val)/(max_val - min_val)
+    return normalized_array
 
 ###### Loading Data ######
 imdb = pd.read_csv('../imdbDataset.csv')
@@ -108,8 +115,6 @@ def word2vec(X, y):
         else:
             print("Vectorized reviews found. Loading word vectors...")
             vectorized_reviews = pickle.load(open("word2vec_reviews.pickle", "rb"))
-            for index, vector in enumerate(vectorized_reviews):
-                vectorized_reviews[index] = vector + 1
     y = convert_y(y)    
     print("Word2Vec Model Created")
     with open("is_vectorizer_created", "w") as fout:
@@ -120,7 +125,7 @@ def word2vec(X, y):
 
 ##### Model Types ######
 ##### Logistic Regression
-##### Hyperparams: train_test_split, regularization_type, C, 
+##### Hyperparams: train_test_split, regularization_type, C (inverse of regularization strength), 
 def logistic_regression(X, y):
     print("Starting creation of Logistic Regression Model")
     logistic_model = LogisticRegression()
@@ -141,7 +146,6 @@ def knn_classifier(X, y, number_neighbors):
     print("KNN Classifier created")
     return y_test, y_pred
 
-
 ##### Naive Bayes Classifier
 ##### Hyperparams: train_test_split
 def naive_bayes(X, y):
@@ -160,17 +164,11 @@ def neural_network(X, y):
     print("Started creation of Neural Network")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
     model = keras.Sequential([
-        # keras.layers.experimental.preprocessing.Normalization(),
-        keras.layers.Dense(2000, activation="sigmoid"),
-        # keras.layers.Sigmoid(),
-        keras.layers.Dense(60, activation="sigmoid"),
-        # keras.layers.LeakyReLU(),
+        keras.layers.Dense(300, activation="sigmoid"),
         keras.layers.Dense(2, activation="softmax")
     ])
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    # X_train = sparse.reorder(sparse.from_dense(X_train)); X_test = sparse.reorder(sparse.from_dense(X_test))
-    # y_train = sparse.reorder(y_train); y_test = sparse.reorder(y_test)
-    model.fit(X_train, y_train, epochs=5)
+    model.fit(X_train, y_train, epochs=50)
     y_pred = model.predict(X_test)
 
     # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
@@ -182,15 +180,15 @@ def neural_network(X, y):
     return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
-X, y = bag_of_words(imdb['review'], imdb['sentiment'])
+X, y = word2vec(imdb['review'], imdb['sentiment'])
 np.set_printoptions(threshold=np.inf)
-y_test, y_pred = neural_network(sparse.lil_matrix(X).toarray(), y)
-
+y_test, y_pred = neural_network(normalize(np.array(X)), y)
+# y_test, y_pred = logistic_regression(X, y)
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
 
-print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall ", round(recall, 2))
+print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall: ", round(recall, 2))
 
 ##### KNN Classifier Implementation
 # max_accuracy = -1
