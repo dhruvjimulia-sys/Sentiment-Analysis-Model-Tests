@@ -160,7 +160,7 @@ def neural_network(X, y):
     print("Started creation of Neural Network")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
     model = keras.Sequential([
-        # keras.layers.experimental.preprocessing.Normalization(),
+        keras.layers.experimental.preprocessing.Normalization(),
         keras.layers.Dense(2000, activation="sigmoid"),
         # keras.layers.Sigmoid(),
         keras.layers.Dense(60, activation="sigmoid"),
@@ -168,9 +168,7 @@ def neural_network(X, y):
         keras.layers.Dense(2, activation="softmax")
     ])
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    # X_train = sparse.reorder(sparse.from_dense(X_train)); X_test = sparse.reorder(sparse.from_dense(X_test))
-    # y_train = sparse.reorder(y_train); y_test = sparse.reorder(y_test)
-    model.fit(X_train, y_train, epochs=5)
+    model.fit(X_train, y_train, epochs=10)
     y_pred = model.predict(X_test)
 
     # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
@@ -182,8 +180,7 @@ def neural_network(X, y):
     return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
-X, y = bag_of_words(imdb['review'], imdb['sentiment'])
-np.set_printoptions(threshold=np.inf)
+X, y = tf_idf(imdb['review'], imdb['sentiment'])
 y_test, y_pred = neural_network(sparse.lil_matrix(X).toarray(), y)
 
 accuracy = accuracy_score(y_test, y_pred)
