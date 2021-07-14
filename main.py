@@ -10,11 +10,15 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
+from tensorflow.python.keras.layers.advanced_activations import LeakyReLU
 nlp = spacy.load("en_core_web_md")
 
 import pickle
 
+# from tensorflow import sparse
 from tensorflow import keras 
+
+from scipy import sparse
 
 print("Imports complete")
 
@@ -51,11 +55,12 @@ def bag_of_words(X, y):
         if ('False' in fin.read()):
             print("Did not find vectorizer. Creating new vectorizer...")
             bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-            pickle.dump(bow_transformer, open("bow_transformer.pickle", "wb"))
+            # pickle.dump(bow_transformer, open("bow_transformer.pickle", "wb"))
+            X = bow_transformer.transform(X)
+            pickle.dump(X, open("bow_transformer_vectors.pickle", "wb"))
         else:
             print("Vectorizer Found. Loading Vectorizer...")
-            bow_transformer = pickle.load(open("bow_transformer.pickle", "rb"))
-        X = bow_transformer.transform(X)
+            X = pickle.load(open("bow_transformer_vectors.pickle", "rb"))
         y = convert_y(y)
         print("Bag of Words Model Completed")
     with open("is_vectorizer_created", "w") as fout:
@@ -70,11 +75,13 @@ def tf_idf(X, y):
         if ('False' in fin.read()):
             print("Did not find vectorizer. Creating new vectorizer...")
             tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-            pickle.dump(tfidf_transformer, open("tfidf_transformer.pickle", "wb"))
+            # pickle.dump(tfidf_transformer, open("tfidf_transformer.pickle", "wb"))
+            X = tfidf_transformer.transform(X)
+            pickle.dump(X, open("tfidf_vectors.pickle", "wb"))
         else:
             print("Vectorizer Found. Loading Vectorizer...")
-            tfidf_transformer = pickle.load(open("tfidf_transformer.pickle", "rb"))            
-        X = tfidf_transformer.transform(X)
+            # tfidf_transformer = pickle.load(open("tfidf_transformer.pickle", "rb"))
+            X = pickle.load(open("tfidf_vectors.pickle", "rb"))
         y = convert_y(y)
         print("TF-IDF Model Created")
     with open("is_vectorizer_created", "w") as fout:
@@ -148,24 +155,36 @@ def naive_bayes(X, y):
 
 ##### Neural Network
 ##### Hyperparams: train_test_split, Architecture, Optimizer: Learning Rate, Epochs, Batch Size, Initial Weights, Initial Biases
-#####              Epochs, Loss Function,
+#####              Epochs, Loss Function, Regularization
 def neural_network(X, y):
     print("Started creation of Neural Network")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
     model = keras.Sequential([
-        keras.layers.Dense(300, activation="leaky_relu"),
-        keras.layers.Dense(128, activation="leaky_relu"),
+        # keras.layers.experimental.preprocessing.Normalization(),
+        keras.layers.Dense(2000, activation="sigmoid"),
+        # keras.layers.Sigmoid(),
+        keras.layers.Dense(60, activation="sigmoid"),
+        # keras.layers.LeakyReLU(),
         keras.layers.Dense(2, activation="softmax")
     ])
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    # X_train = sparse.reorder(sparse.from_dense(X_train)); X_test = sparse.reorder(sparse.from_dense(X_test))
+    # y_train = sparse.reorder(y_train); y_test = sparse.reorder(y_test)
     model.fit(X_train, y_train, epochs=5)
     y_pred = model.predict(X_test)
+
+    # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
+    argmax_predictions = []
+    for array in y_pred:
+        argmax_predictions.append(np.argmax(array))
+    argmax_predictions = np.array(argmax_predictions)
     print("Neural Network Created")
-    return y_test, y_pred
+    return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
-X, y = tf_idf(imdb['review'], imdb['sentiment'])
-y_test, y_pred = neural_network(X, y)
+X, y = bag_of_words(imdb['review'], imdb['sentiment'])
+np.set_printoptions(threshold=np.inf)
+y_test, y_pred = neural_network(sparse.lil_matrix(X).toarray(), y)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
