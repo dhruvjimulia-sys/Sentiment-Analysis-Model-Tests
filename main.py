@@ -10,7 +10,6 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
-from tensorflow.python.keras.layers.advanced_activations import LeakyReLU
 nlp = spacy.load("en_core_web_md")
 
 import pickle
@@ -37,6 +36,13 @@ def convert_y(sentiments):
     for sentiment in sentiments:
         converted_list.append(1 if sentiment == 'positive' else 0)
     return np.array(converted_list)
+# Normalization function before neural network: normalizes all values between 0 and 1
+def normalize(arr):
+    max_val = np.max(arr)
+    min_val = np.min(arr)
+    # normalized_array = np.array([2 * ((val - min_val)/(max_val - min_val)) for val in arr])
+    normalized_array = 2 * ((arr - min_val)/(max_val - min_val)) - 1
+    return normalized_array
 
 ###### Loading Data ######
 imdb = pd.read_csv('../imdbDataset.csv')
@@ -65,7 +71,7 @@ def bag_of_words(X, y):
         print("Bag of Words Model Completed")
     with open("is_vectorizer_created", "w") as fout:
         fout.write("True")
-    return X, y
+    return sparse.lil_matrix(X).toarray(), y
 
 ##### TF-IDF Vectorization
 ##### Hyperparams: max_features
@@ -86,7 +92,7 @@ def tf_idf(X, y):
         print("TF-IDF Model Created")
     with open("is_vectorizer_created", "w") as fout:
         fout.write("True")
-    return X, y
+    return sparse.lil_matrix(X).toarray(), y
 
 ##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
 ##### Hyperparams: 
@@ -98,7 +104,7 @@ def word2vec(X, y):
             print("No reviews found. Converting reviews to vectors...")
             vectorized_reviews = []
             for index, review in enumerate(X):
-                avg_vector = [0] * 300 
+                avg_vector = np.zeros(shape=(300))
                 for token in tokenize(review):
                     avg_vector += nlp(token).vector
                 avg_vector = avg_vector / len(X)
@@ -108,19 +114,17 @@ def word2vec(X, y):
         else:
             print("Vectorized reviews found. Loading word vectors...")
             vectorized_reviews = pickle.load(open("word2vec_reviews.pickle", "rb"))
-            for index, vector in enumerate(vectorized_reviews):
-                vectorized_reviews[index] = vector + 1
     y = convert_y(y)    
     print("Word2Vec Model Created")
     with open("is_vectorizer_created", "w") as fout:
         fout.write("True")
-    return vectorized_reviews, y
+    return normalize(np.array(vectorized_reviews)), y
 
 ##### BERT Language Model
 
 ##### Model Types ######
 ##### Logistic Regression
-##### Hyperparams: train_test_split, regularization_type, C, 
+##### Hyperparams: train_test_split, regularization_type, C (inverse of regularization strength), 
 def logistic_regression(X, y):
     print("Starting creation of Logistic Regression Model")
     logistic_model = LogisticRegression()
@@ -141,7 +145,6 @@ def knn_classifier(X, y, number_neighbors):
     print("KNN Classifier created")
     return y_test, y_pred
 
-
 ##### Naive Bayes Classifier
 ##### Hyperparams: train_test_split
 def naive_bayes(X, y):
@@ -158,8 +161,9 @@ def naive_bayes(X, y):
 #####              Epochs, Loss Function, Regularization
 def neural_network(X, y):
     print("Started creation of Neural Network")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
     model = keras.Sequential([
+<<<<<<< HEAD
         keras.layers.experimental.preprocessing.Normalization(),
         keras.layers.Dense(2000, activation="sigmoid"),
         # keras.layers.Sigmoid(),
@@ -169,6 +173,15 @@ def neural_network(X, y):
     ])
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     model.fit(X_train, y_train, epochs=10)
+=======
+        keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+        keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+        keras.layers.Dense(2, activation="softmax")
+    ])
+    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    model.fit(X_train, y_train, epochs=50, batch_size=64)
+    model.summary()
+>>>>>>> nn-support-with-word2vec
     y_pred = model.predict(X_test)
 
     # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
@@ -181,13 +194,18 @@ def neural_network(X, y):
 
 ##### Applying Models And Printing Accuracy #####
 X, y = tf_idf(imdb['review'], imdb['sentiment'])
+<<<<<<< HEAD
 y_test, y_pred = neural_network(sparse.lil_matrix(X).toarray(), y)
+=======
+# np.set_printoptions(threshold=np.inf)
+y_test, y_pred = logistic_regression(X, y)
+>>>>>>> nn-support-with-word2vec
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
 
-print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall ", round(recall, 2))
+print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall: ", round(recall, 2))
 
 ##### KNN Classifier Implementation
 # max_accuracy = -1
