@@ -58,19 +58,18 @@ print("Data Loading Complete")
 ##### Hyperparams: max_features
 def bag_of_words(X, y):
     print("Starting Bag of Words Model")
-    with open("is_vectorizer_created", "r") as fin:
+    with open("../check_data_present/is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
             print("Did not find vectorizer. Creating new vectorizer...")
             bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-            # pickle.dump(bow_transformer, open("bow_transformer.pickle", "wb"))
             X = bow_transformer.transform(X)
-            pickle.dump(X, open("bow_transformer_vectors.pickle", "wb"))
+            pickle.dump(X, open("../preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
         else:
             print("Vectorizer Found. Loading Vectorizer...")
-            X = pickle.load(open("bow_transformer_vectors.pickle", "rb"))
+            X = pickle.load(open("../preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
         y = convert_y(y)
         print("Bag of Words Model Completed")
-    with open("is_vectorizer_created", "w") as fout:
+    with open("../check_data_present/is_vectorizer_created", "w") as fout:
         fout.write("True")
     return sparse.lil_matrix(X).toarray(), y
 
@@ -78,20 +77,18 @@ def bag_of_words(X, y):
 ##### Hyperparams: max_features
 def tf_idf(X, y):
     print("Starting TF-IDF Model")
-    with open("is_vectorizer_created", "r") as fin:
+    with open("../check_data_present/is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
             print("Did not find vectorizer. Creating new vectorizer...")
             tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-            # pickle.dump(tfidf_transformer, open("tfidf_transformer.pickle", "wb"))
             X = tfidf_transformer.transform(X)
-            pickle.dump(X, open("tfidf_vectors.pickle", "wb"))
+            pickle.dump(X, open("../preencoded_embeddings/tfidf_vectors.pickle", "wb"))
         else:
             print("Vectorizer Found. Loading Vectorizer...")
-            # tfidf_transformer = pickle.load(open("tfidf_transformer.pickle", "rb"))
-            X = pickle.load(open("tfidf_vectors.pickle", "rb"))
+            X = pickle.load(open("../preencoded_embeddings/tfidf_vectors.pickle", "rb"))
         y = convert_y(y)
         print("TF-IDF Model Created")
-    with open("is_vectorizer_created", "w") as fout:
+    with open("../check_data_present/is_vectorizer_created", "w") as fout:
         fout.write("True")
     return sparse.lil_matrix(X).toarray(), y
 
@@ -99,7 +96,7 @@ def tf_idf(X, y):
 ##### Hyperparams: 
 def word2vec(X, y):
     print("Starting Word2Vec Model")
-    with open("is_vectorizer_created", "r") as fin:
+    with open("../check_data_present/is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
             print("Using pretrained Spacy vectors to train model")
             print("No reviews found. Converting reviews to vectors...")
@@ -111,13 +108,13 @@ def word2vec(X, y):
                 avg_vector = avg_vector / len(X)
                 vectorized_reviews.append(avg_vector)
                 print(f"Review {index}: Done")
-            pickle.dump(vectorized_reviews, open("word2vec_reviews.pickle", "wb"))
+            pickle.dump(vectorized_reviews, open("../preencoded_embeddings/word2vec_reviews.pickle", "wb"))
         else:
             print("Vectorized reviews found. Loading word vectors...")
-            vectorized_reviews = pickle.load(open("word2vec_reviews.pickle", "rb"))
+            vectorized_reviews = pickle.load(open("../preencoded_embeddings/word2vec_reviews.pickle", "rb"))
     y = convert_y(y)    
     print("Word2Vec Model Created")
-    with open("is_vectorizer_created", "w") as fout:
+    with open("../check_data_present/is_vectorizer_created", "w") as fout:
         fout.write("True")
     return normalize(np.array(vectorized_reviews)), y
 
@@ -160,16 +157,16 @@ def naive_bayes(X, y):
 ##### Neural Network
 ##### Hyperparams: train_test_split, Architecture, Optimizer: Learning Rate, Epochs, Batch Size, Initial Weights, Initial Biases
 #####              Epochs, Loss Function, Regularization
-def neural_network(X, y, input_neurons):
+def neural_network(X, y, architecture_id):
     print("Started creation of Neural Network")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
-    if input_neurons == 300:
+    if architecture_id == 1:
         model = keras.Sequential([
                 keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
                 keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
                 keras.layers.Dense(2, activation="softmax")
         ])
-    elif input_neurons == 2000:
+    elif architecture_id == 2:
         model = keras.Sequential([
             keras.layers.Dense(2000, activation="relu"),
             keras.layers.Dense(200, activation="relu"),
@@ -189,9 +186,9 @@ def neural_network(X, y, input_neurons):
     return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
+
 X, y = bag_of_words(imdb['review'], imdb['sentiment'])
-# np.set_printoptions(threshold=np.inf)
-y_test, y_pred = neural_network(X, y, 2000)
+y_test, y_pred = neural_network(X, y, 2)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
