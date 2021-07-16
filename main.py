@@ -10,6 +10,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
+from tensorflow.python.keras.layers.core import Dropout
 nlp = spacy.load("en_core_web_md")
 
 import pickle
@@ -159,29 +160,24 @@ def naive_bayes(X, y):
 ##### Neural Network
 ##### Hyperparams: train_test_split, Architecture, Optimizer: Learning Rate, Epochs, Batch Size, Initial Weights, Initial Biases
 #####              Epochs, Loss Function, Regularization
-def neural_network(X, y):
+def neural_network(X, y, input_neurons):
     print("Started creation of Neural Network")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
-    model = keras.Sequential([
-<<<<<<< HEAD
-        keras.layers.experimental.preprocessing.Normalization(),
-        keras.layers.Dense(2000, activation="sigmoid"),
-        # keras.layers.Sigmoid(),
-        keras.layers.Dense(60, activation="sigmoid"),
-        # keras.layers.LeakyReLU(),
-        keras.layers.Dense(2, activation="softmax")
-    ])
+    if input_neurons == 300:
+        model = keras.Sequential([
+                keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+                keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+                keras.layers.Dense(2, activation="softmax")
+        ])
+    elif input_neurons == 2000:
+        model = keras.Sequential([
+            keras.layers.Dense(2000, activation="relu"),
+            keras.layers.Dense(200, activation="relu"),
+            keras.layers.Dense(2, activation="softmax")
+        ])
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    model.fit(X_train, y_train, epochs=10)
-=======
-        keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
-        keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
-        keras.layers.Dense(2, activation="softmax")
-    ])
-    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    model.fit(X_train, y_train, epochs=50, batch_size=64)
+    model.fit(X_train, y_train, epochs=5, batch_size=64)
     model.summary()
->>>>>>> nn-support-with-word2vec
     y_pred = model.predict(X_test)
 
     # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
@@ -193,13 +189,9 @@ def neural_network(X, y):
     return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
-X, y = tf_idf(imdb['review'], imdb['sentiment'])
-<<<<<<< HEAD
-y_test, y_pred = neural_network(sparse.lil_matrix(X).toarray(), y)
-=======
+X, y = bag_of_words(imdb['review'], imdb['sentiment'])
 # np.set_printoptions(threshold=np.inf)
-y_test, y_pred = logistic_regression(X, y)
->>>>>>> nn-support-with-word2vec
+y_test, y_pred = neural_network(X, y, 2000)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
