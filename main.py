@@ -160,35 +160,34 @@ def naive_bayes(X, y):
 def neural_network(X, y, architecture_id):
     print("Started creation of Neural Network")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
+
     if architecture_id == 1:
         model = keras.Sequential([
                 keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
                 keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
-                keras.layers.Dense(2, activation="softmax")
+                keras.layers.Dense(1, activation="sigmoid")
         ])
+        model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+        model.fit(X_train, y_train, epochs=50, batch_size=64)
     elif architecture_id == 2:
         model = keras.Sequential([
             keras.layers.Dense(2000, activation="relu"),
             keras.layers.Dense(200, activation="relu"),
-            keras.layers.Dense(2, activation="softmax")
+            keras.layers.Dense(1, activation="sigmoid")
         ])
-    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    model.fit(X_train, y_train, epochs=5, batch_size=64)
+        model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+        model.fit(X_train, y_train, epochs=5, batch_size=64)
+    
     model.summary()
     y_pred = model.predict(X_test)
-
-    # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
-    argmax_predictions = []
-    for array in y_pred:
-        argmax_predictions.append(np.argmax(array))
-    argmax_predictions = np.array(argmax_predictions)
+    argmax_predictions = np.array([round(array[0]) for array in y_pred])
     print("Neural Network Created")
     return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
 
-X, y = bag_of_words(imdb['review'], imdb['sentiment'])
-y_test, y_pred = neural_network(X, y, 2)
+X, y = word2vec(imdb['review'], imdb['sentiment'])
+y_test, y_pred = neural_network(X, y, 1)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
