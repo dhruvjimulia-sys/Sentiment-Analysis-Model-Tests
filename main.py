@@ -58,18 +58,18 @@ print("Data Loading Complete")
 ##### Hyperparams: max_features
 def bag_of_words(X, y):
     print("Starting Bag of Words Model")
-    with open("../check_data_present/is_vectorizer_created", "r") as fin:
+    with open("./check_data_present/is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
             print("Did not find vectorizer. Creating new vectorizer...")
             bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
             X = bow_transformer.transform(X)
-            pickle.dump(X, open("../preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
+            pickle.dump(X, open("./preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
         else:
             print("Vectorizer Found. Loading Vectorizer...")
-            X = pickle.load(open("../preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
+            X = pickle.load(open("./preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
         y = convert_y(y)
         print("Bag of Words Model Completed")
-    with open("../check_data_present/is_vectorizer_created", "w") as fout:
+    with open("./check_data_present/is_vectorizer_created", "w") as fout:
         fout.write("True")
     return sparse.lil_matrix(X).toarray(), y
 
@@ -77,18 +77,18 @@ def bag_of_words(X, y):
 ##### Hyperparams: max_features
 def tf_idf(X, y):
     print("Starting TF-IDF Model")
-    with open("../check_data_present/is_vectorizer_created", "r") as fin:
+    with open("./check_data_present/is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
             print("Did not find vectorizer. Creating new vectorizer...")
             tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X)
             X = tfidf_transformer.transform(X)
-            pickle.dump(X, open("../preencoded_embeddings/tfidf_vectors.pickle", "wb"))
+            pickle.dump(X, open("./preencoded_embeddings/tfidf_vectors.pickle", "wb"))
         else:
             print("Vectorizer Found. Loading Vectorizer...")
-            X = pickle.load(open("../preencoded_embeddings/tfidf_vectors.pickle", "rb"))
+            X = pickle.load(open("./preencoded_embeddings/tfidf_vectors.pickle", "rb"))
         y = convert_y(y)
         print("TF-IDF Model Created")
-    with open("../check_data_present/is_vectorizer_created", "w") as fout:
+    with open("./check_data_present/is_vectorizer_created", "w") as fout:
         fout.write("True")
     return sparse.lil_matrix(X).toarray(), y
 
@@ -96,7 +96,7 @@ def tf_idf(X, y):
 ##### Hyperparams: 
 def word2vec(X, y):
     print("Starting Word2Vec Model")
-    with open("../check_data_present/is_vectorizer_created", "r") as fin:
+    with open("./check_data_present/is_vectorizer_created", "r") as fin:
         if ('False' in fin.read()):
             print("Using pretrained Spacy vectors to train model")
             print("No reviews found. Converting reviews to vectors...")
@@ -108,13 +108,13 @@ def word2vec(X, y):
                 avg_vector = avg_vector / len(X)
                 vectorized_reviews.append(avg_vector)
                 print(f"Review {index}: Done")
-            pickle.dump(vectorized_reviews, open("../preencoded_embeddings/word2vec_reviews.pickle", "wb"))
+            pickle.dump(vectorized_reviews, open("./preencoded_embeddings/word2vec_reviews.pickle", "wb"))
         else:
             print("Vectorized reviews found. Loading word vectors...")
-            vectorized_reviews = pickle.load(open("../preencoded_embeddings/word2vec_reviews.pickle", "rb"))
+            vectorized_reviews = pickle.load(open("./preencoded_embeddings/word2vec_reviews.pickle", "rb"))
     y = convert_y(y)    
     print("Word2Vec Model Created")
-    with open("../check_data_present/is_vectorizer_created", "w") as fout:
+    with open("./check_data_present/is_vectorizer_created", "w") as fout:
         fout.write("True")
     return normalize(np.array(vectorized_reviews)), y
 
