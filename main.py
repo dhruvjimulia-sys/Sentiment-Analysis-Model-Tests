@@ -42,7 +42,7 @@ def normalize(arr):
     max_val = np.max(arr)
     min_val = np.min(arr)
     # normalized_array = np.array([2 * ((val - min_val)/(max_val - min_val)) for val in arr])
-    normalized_array = (arr - min_val)/(max_val - min_val)
+    normalized_array = 2 * ((arr - min_val)/(max_val - min_val)) - 1
     return normalized_array
 
 ###### Loading Data ######
@@ -105,7 +105,7 @@ def word2vec(X, y):
             print("No reviews found. Converting reviews to vectors...")
             vectorized_reviews = []
             for index, review in enumerate(X):
-                avg_vector = [0] * 300 
+                avg_vector = np.zeros(shape=(300))
                 for token in tokenize(review):
                     avg_vector += nlp(token).vector
                 avg_vector = avg_vector / len(X)
@@ -162,13 +162,15 @@ def naive_bayes(X, y):
 #####              Epochs, Loss Function, Regularization
 def neural_network(X, y):
     print("Started creation of Neural Network")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=45)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
     model = keras.Sequential([
-        keras.layers.Dense(300, activation="sigmoid"),
+        keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+        keras.layers.Dense(150, activation="relu", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
         keras.layers.Dense(2, activation="softmax")
     ])
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-    model.fit(X_train, y_train, epochs=50)
+    model.fit(X_train, y_train, epochs=50, batch_size=64)
+    model.summary()
     y_pred = model.predict(X_test)
 
     # Since model.predict returns array of two integers and other models return single prediction, performing argmax below
@@ -182,6 +184,8 @@ def neural_network(X, y):
 ##### Applying Models And Printing Accuracy #####
 X, y = word2vec(imdb['review'], imdb['sentiment'])
 np.set_printoptions(threshold=np.inf)
+print(np.array(X[0]))
+print(normalize(np.array(X[0])))
 y_test, y_pred = neural_network(normalize(np.array(X)), y)
 # y_test, y_pred = logistic_regression(X, y)
 accuracy = accuracy_score(y_test, y_pred)
