@@ -10,7 +10,6 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
-from tensorflow.python.keras.layers.advanced_activations import LeakyReLU
 nlp = spacy.load("en_core_web_md")
 
 import pickle
@@ -72,7 +71,7 @@ def bag_of_words(X, y):
         print("Bag of Words Model Completed")
     with open("is_vectorizer_created", "w") as fout:
         fout.write("True")
-    return X, y
+    return sparse.lil_matrix(X).toarray(), y
 
 ##### TF-IDF Vectorization
 ##### Hyperparams: max_features
@@ -93,7 +92,7 @@ def tf_idf(X, y):
         print("TF-IDF Model Created")
     with open("is_vectorizer_created", "w") as fout:
         fout.write("True")
-    return X, y
+    return sparse.lil_matrix(X).toarray(), y
 
 ##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
 ##### Hyperparams: 
@@ -119,7 +118,7 @@ def word2vec(X, y):
     print("Word2Vec Model Created")
     with open("is_vectorizer_created", "w") as fout:
         fout.write("True")
-    return vectorized_reviews, y
+    return normalize(np.array(vectorized_reviews)), y
 
 ##### BERT Language Model
 
@@ -165,7 +164,7 @@ def neural_network(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
     model = keras.Sequential([
         keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
-        keras.layers.Dense(150, activation="relu", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+        keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
         keras.layers.Dense(2, activation="softmax")
     ])
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
@@ -182,12 +181,10 @@ def neural_network(X, y):
     return y_test, argmax_predictions
 
 ##### Applying Models And Printing Accuracy #####
-X, y = word2vec(imdb['review'], imdb['sentiment'])
-np.set_printoptions(threshold=np.inf)
-print(np.array(X[0]))
-print(normalize(np.array(X[0])))
-y_test, y_pred = neural_network(normalize(np.array(X)), y)
-# y_test, y_pred = logistic_regression(X, y)
+X, y = tf_idf(imdb['review'], imdb['sentiment'])
+# np.set_printoptions(threshold=np.inf)
+y_test, y_pred = logistic_regression(X, y)
+
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
