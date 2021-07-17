@@ -1,7 +1,7 @@
 ### **Social Media Sentiment Analysis Project** 
 ---
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dhruvjimulia-sys/colabtools/blob/main/main.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dhruvjimulia-sys/social-media-sentiment-analysis/blob/main/main.ipynb)
 
 ##### Description: Python Project to classify social media comments as positive or negative
 
