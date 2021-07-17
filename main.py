@@ -1,3 +1,4 @@
+# %%
 ###### Import Libraries ######
 import pandas as pd
 import numpy as np
@@ -22,6 +23,7 @@ from scipy import sparse
 
 print("Imports complete")
 
+# %%
 ####### Data Preprocessing Functions #######
 def is_not_br(token):
     return ((not ('<br' in token.text)) & (not ('/><br' in token.text)) & (not ('/>' in token.text)) & (token.text != 'br') & (not ('<' in token.text)))
@@ -45,6 +47,7 @@ def normalize(arr):
     normalized_array = 2 * ((arr - min_val)/(max_val - min_val)) - 1
     return normalized_array
 
+#%%
 ###### Loading Data ######
 imdb = pd.read_csv('../imdbDataset.csv')
 imdb = imdb.iloc[:1500]
@@ -53,6 +56,7 @@ print(f"Length : {len(imdb)}")
 
 print("Data Loading Complete")
 
+#%%
 ##### Word -> Number Encoding ######
 ##### Bag Of Words
 ##### Hyperparams: max_features
@@ -184,6 +188,7 @@ def neural_network(X, y, architecture_id):
     print("Neural Network Created")
     return y_test, argmax_predictions
 
+# %%
 ##### Applying Models And Printing Accuracy #####
 
 X, y = word2vec(imdb['review'], imdb['sentiment'])
