@@ -1,12 +1,10 @@
-### **Social Media Sentiment Analysis Project** 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dhruvjimulia-sys/Social-Media-Sentiment-Analysis/blob/main/main.ipynb)
+
 ---
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dhruvjimulia-sys/social-media-sentiment-analysis/blob/main/main.ipynb)
-
+### **Social Media Sentiment Analysis Project** #
 ##### Description: Python Project to classify social media comments as positive or negative
 
 ##### Status: **In Progress**
-
 ---
 ### To Do List:
 * ##### Try Training Model On Cloud GPU and compare training time

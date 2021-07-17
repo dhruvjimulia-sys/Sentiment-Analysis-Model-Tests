@@ -1,4 +1,8 @@
 # %%
+##### Global Variables ######
+create_new_vectors = False
+
+# %%
 ###### Import Libraries ######
 import pandas as pd
 import numpy as np
@@ -11,15 +15,14 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
-from tensorflow.python.keras.layers.core import Dropout
 nlp = spacy.load("en_core_web_md")
 
 import pickle
 
-# from tensorflow import sparse
 from tensorflow import keras 
-
 from scipy import sparse
+
+import os
 
 print("Imports complete")
 
@@ -61,20 +64,30 @@ print("Data Loading Complete")
 ##### Bag Of Words
 ##### Hyperparams: max_features
 def bag_of_words(X, y):
+
+    def load_model(X):
+        print("Loading vectorizer...")
+        X = pickle.load(open("./preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
+    def create_model(X):
+        print("Creating vectorizer...")
+        bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
+        X = bow_transformer.transform(X)
+        pickle.dump(X, open("./preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
+
     print("Starting Bag of Words Model")
-    with open("./check_data_present/is_vectorizer_created", "r") as fin:
-        if ('False' in fin.read()):
-            print("Did not find vectorizer. Creating new vectorizer...")
-            bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-            X = bow_transformer.transform(X)
-            pickle.dump(X, open("./preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
+    if create_new_vectors:
+        if os.path.isfile("./preencoded_embeddings/bow_transformer_vectors.pickle"):
+            user_input = input("Found vectorizer. Are you sure you still want to make a new vectorizer? (Y/N)")
+            load_model(X) if user_input == "N" else create_model(X)  # Assumes Y if anything else is input
         else:
-            print("Vectorizer Found. Loading Vectorizer...")
-            X = pickle.load(open("./preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
-        y = convert_y(y)
-        print("Bag of Words Model Completed")
-    with open("./check_data_present/is_vectorizer_created", "w") as fout:
-        fout.write("True")
+            print("Did not find vectorizer.")
+            create_model(X)
+    else:
+        print("Vectorizer Found. Loading Vectorizer...")
+        load_model(X)
+    
+    y = convert_y(y)
+    print("Bag of Words Model Completed")
     return sparse.lil_matrix(X).toarray(), y
 
 ##### TF-IDF Vectorization
@@ -191,8 +204,8 @@ def neural_network(X, y, architecture_id):
 # %%
 ##### Applying Models And Printing Accuracy #####
 
-X, y = word2vec(imdb['review'], imdb['sentiment'])
-y_test, y_pred = neural_network(X, y, 1)
+X, y = bag_of_words(imdb['review'], imdb['sentiment'])
+y_test, y_pred = neural_network(X, y, 2)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
