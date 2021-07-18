@@ -16,7 +16,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
-nlp = spacy.load("en_core_web_md")
+nlp = spacy.load("en_core_web_md", exclude=["parser", "ner", "textcat"])
 
 import pickle
 
@@ -25,18 +25,17 @@ from scipy import sparse
 
 import os
 
+from time import time
+
 print("Imports complete")
 
 # %%
 ####### Data Preprocessing Functions #######
-def is_not_br(token):
-    return ((not ('<br' in token.text)) & (not ('/><br' in token.text)) & (not ('/>' in token.text)) & (token.text != 'br') & (not ('<' in token.text)))
-def tokenize(text):
-    clean_tokens = []
-    for token in nlp(text):
-        if (not token.is_stop) & (token.lemma_ != '-PRON-') & (not token.is_punct) & is_not_br(token) & (not token.text.isdigit()):
-            clean_tokens.append(token.lemma_.lower())
-    return clean_tokens
+def is_not_br(text):
+    return ((not ('<br' in text)) & (not ('/><br' in text)) & (not ('/>' in text)) & (text != 'br') & (not ('<' in text)))
+def tokenize(text_doc):
+    # returns generator object for optimization
+    return (token.lemma_.lower() for token in text_doc if (not token.is_stop) & (token.lemma_ != '-PRON-') & (not token.is_punct) & is_not_br(token.text) & (not token.text.isdigit()))
 # Maps 'positive' to 1 and 'negative' to 0
 def convert_y(sentiments):
     converted_list = []
@@ -68,7 +67,7 @@ def bag_of_words(X, y):
 
     def load_model():
         print("Loading vectorizer...")
-        return pickle.load(open("./preencoded_embeddings/tfidf_vectors.pickle", "rb"))
+        return pickle.load(open("./preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
     def create_model(X_data):
         print("Creating vectorizer...")
         bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X_data)
@@ -83,7 +82,7 @@ def bag_of_words(X, y):
             if user_input == "N":
                 X = load_model()
             elif user_input == "Y":
-                os.remove("./preencoded_embeddings/word2vec_reviews.pickle")
+                os.remove("./preencoded_embeddings/bow_transformer_vectors.pickle")
                 create_model(X)
             else:
                 print("Input not in format specified")
@@ -114,12 +113,12 @@ def tf_idf(X, y):
 
     print("Starting TF-IDF Model")
     if create_new_vectors:
-        if os.path.isfile("./preencoded_embeddings/bow_transformer_vectors.pickle"):
+        if os.path.isfile("./preencoded_embeddings/tfidf_vectors.pickle"):
             user_input = input("Found vectorizer. Are you sure you still want to make a new vectorizer? (Y/N)")
             if user_input == "N":
                 X = load_model()
             elif user_input == "Y":
-                os.remove("./preencoded_embeddings/word2vec_reviews.pickle")
+                os.remove("./preencoded_embeddings/tfidf_vectors.pickle")
                 create_model(X)
             else:
                 print("Input not in format specified")
@@ -137,19 +136,11 @@ def tf_idf(X, y):
 ##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
 ##### Hyperparams: 
 def word2vec(X, y):
-
     def load_model():
         print("Loading word vectors...")
         return pickle.load(open("./preencoded_embeddings/word2vec_reviews.pickle", "rb"))
     def create_model(X):
-        vectorized_reviews = []
-        for index, review in enumerate(X):
-            avg_vector = np.zeros(shape=(300))
-            for token in tokenize(review):
-                avg_vector += nlp(token).vector
-            avg_vector = avg_vector / len(X)
-            vectorized_reviews.append(avg_vector)
-            print(f"Review {index}: Done")
+        vectorized_reviews = np.array([review_doc.vector for review_doc in nlp.pipe(X)])
         pickle.dump(vectorized_reviews, open("./preencoded_embeddings/word2vec_reviews.pickle", "wb"))
         return vectorized_reviews
 
@@ -161,7 +152,7 @@ def word2vec(X, y):
                 X = load_model()
             elif user_input == "Y":
                 os.remove("./preencoded_embeddings/word2vec_reviews.pickle")
-                create_model(X)
+                X = create_model(X)
             else:
                 print("Input not in format specified")
         else:
@@ -171,7 +162,7 @@ def word2vec(X, y):
         X = load_model()
     y = convert_y(y)    
     print("Word2Vec Model Created")
-    return normalize(np.array(X)), y
+    return normalize(X), y
 
 ##### BERT Language Model
 
@@ -242,7 +233,9 @@ def neural_network(X, y, architecture_id):
 # %%
 ##### Applying Models And Printing Accuracy #####
 
+start = time()
 X, y = word2vec(imdb['review'], imdb['sentiment'])
+end = time()
 y_test, y_pred = neural_network(X, y, 1)
 
 accuracy = accuracy_score(y_test, y_pred)
@@ -250,6 +243,7 @@ precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
 
 print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall: ", round(recall, 2))
+print(f"Time taken for word2vc: {end - start}")
 
 ##### KNN Classifier Implementation
 # max_accuracy = -1
@@ -271,3 +265,4 @@ print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ",
 #         max_accuracy_neighbors = i
 
 # print(f"Maximum Accuracy obtained was {max_accuracy} with {max_accuracy_neighbors}")
+# %%

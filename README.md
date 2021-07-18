@@ -7,16 +7,27 @@
 ##### Status: **In Progress**
 ---
 ### To Do List:
-* ##### Try Training Model On Cloud GPU and compare training time
-* ##### Write Vectorizer class to make code less repetitive
+##### Models to check:
 * ##### LSTM/RNN Model Try
-* ##### Add validation data from original dataset
 * ##### Add BERT Model Embeddings
-* ##### Use different datasets apart from the IMDB dataset
+* ##### State of the art model
+* ##### Use NEAT to create neural network
+
+##### Features to add:
+* ##### Checkpointing vectorizer
+* ##### Saving Models
+* ##### Add validation data from original dataset + Use more data from IMDB dataset
+* ##### Mixture of datasets including the IMDB dataset
 * ##### Add option to save model once created
+* ##### Integrate with Django to create web application
+
+##### Lower Priority:
 * ##### Try Keras Embedding Layer
 * ##### Try GloVe embeddings
-* ##### State of the art models
-* ##### Use NEAT to create neural network
-* ##### Use more data from IMDB dataset
-* ##### Integrate with Django to create web application 
+* ##### Write Vectorizer class to make code less repetitive
+
+##### Optimize vectorization:
+* Cythonization
+* Caching Decorators
+* RegEx
+* Parallel Cores using joblib
