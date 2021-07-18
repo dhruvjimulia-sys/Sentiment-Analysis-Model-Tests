@@ -24,8 +24,8 @@ from tensorflow import keras
 from scipy import sparse
 
 import os
-
 from time import time
+from functools import lru_cache
 
 print("Imports complete")
 
@@ -135,6 +135,7 @@ def tf_idf(X, y):
 
 ##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
 ##### Hyperparams: 
+@lru_cache(max_size=50000)
 def word2vec(X, y):
     def load_model():
         print("Loading word vectors...")
@@ -234,7 +235,7 @@ def neural_network(X, y, architecture_id):
 ##### Applying Models And Printing Accuracy #####
 
 start = time()
-X, y = word2vec(imdb['review'], imdb['sentiment'])
+X, y = word2vec(tuple(imdb['review']), tuple(imdb['sentiment']))
 end = time()
 y_test, y_pred = neural_network(X, y, 1)
 

@@ -27,7 +27,5 @@
 * ##### Write Vectorizer class to make code less repetitive
 
 ##### Optimize vectorization:
-* Cythonization
 * Caching Decorators
 * RegEx
-* Parallel Cores using joblib
