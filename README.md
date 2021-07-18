@@ -8,6 +8,7 @@
 ---
 ### To Do List:
 * ##### Try Training Model On Cloud GPU and compare training time
+* ##### Write Vectorizer class to make code less repetitive
 * ##### LSTM/RNN Model Try
 * ##### Add validation data from original dataset
 * ##### Add BERT Model Embeddings

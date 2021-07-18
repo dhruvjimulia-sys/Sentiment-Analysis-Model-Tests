@@ -1,6 +1,7 @@
 # %%
 ##### Global Variables ######
 create_new_vectors = False
+data_size = 1500
 
 # %%
 ###### Import Libraries ######
@@ -52,8 +53,8 @@ def normalize(arr):
 
 #%%
 ###### Loading Data ######
-imdb = pd.read_csv('../imdbDataset.csv')
-imdb = imdb.iloc[:1500]
+imdb = pd.read_csv('./imdbDataset.csv')
+imdb = imdb.iloc[:data_size]
 pd.set_option("display.max_colwidth", None)
 print(f"Length : {len(imdb)}")
 
@@ -65,26 +66,33 @@ print("Data Loading Complete")
 ##### Hyperparams: max_features
 def bag_of_words(X, y):
 
-    def load_model(X):
+    def load_model():
         print("Loading vectorizer...")
-        X = pickle.load(open("./preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
-    def create_model(X):
+        return pickle.load(open("./preencoded_embeddings/tfidf_vectors.pickle", "rb"))
+    def create_model(X_data):
         print("Creating vectorizer...")
-        bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-        X = bow_transformer.transform(X)
-        pickle.dump(X, open("./preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
+        bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X_data)
+        X_data = bow_transformer.transform(X_data)
+        pickle.dump(X_data, open("./preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
+        return X_data
 
     print("Starting Bag of Words Model")
     if create_new_vectors:
         if os.path.isfile("./preencoded_embeddings/bow_transformer_vectors.pickle"):
             user_input = input("Found vectorizer. Are you sure you still want to make a new vectorizer? (Y/N)")
-            load_model(X) if user_input == "N" else create_model(X)  # Assumes Y if anything else is input
+            if user_input == "N":
+                X = load_model()
+            elif user_input == "Y":
+                os.remove("./preencoded_embeddings/word2vec_reviews.pickle")
+                create_model(X)
+            else:
+                print("Input not in format specified")
         else:
             print("Did not find vectorizer.")
-            create_model(X)
+            X = create_model(X)
     else:
-        print("Vectorizer Found. Loading Vectorizer...")
-        load_model(X)
+        print("Vectorizer Found.")
+        X = load_model()
     
     y = convert_y(y)
     print("Bag of Words Model Completed")
@@ -93,47 +101,77 @@ def bag_of_words(X, y):
 ##### TF-IDF Vectorization
 ##### Hyperparams: max_features
 def tf_idf(X, y):
+
+    def load_model():
+        print("Loading vectorizer...")
+        return pickle.load(open("./preencoded_embeddings/tfidf_vectors.pickle", "rb"))
+    def create_model(X_data):
+        print("Creating vectorizer...")
+        tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X_data)
+        X_data = tfidf_transformer.transform(X_data)
+        pickle.dump(X_data, open("./preencoded_embeddings/tfidf_vectors.pickle", "wb"))
+        return X_data
+
     print("Starting TF-IDF Model")
-    with open("./check_data_present/is_vectorizer_created", "r") as fin:
-        if ('False' in fin.read()):
-            print("Did not find vectorizer. Creating new vectorizer...")
-            tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X)
-            X = tfidf_transformer.transform(X)
-            pickle.dump(X, open("./preencoded_embeddings/tfidf_vectors.pickle", "wb"))
+    if create_new_vectors:
+        if os.path.isfile("./preencoded_embeddings/bow_transformer_vectors.pickle"):
+            user_input = input("Found vectorizer. Are you sure you still want to make a new vectorizer? (Y/N)")
+            if user_input == "N":
+                X = load_model()
+            elif user_input == "Y":
+                os.remove("./preencoded_embeddings/word2vec_reviews.pickle")
+                create_model(X)
+            else:
+                print("Input not in format specified")
         else:
-            print("Vectorizer Found. Loading Vectorizer...")
-            X = pickle.load(open("./preencoded_embeddings/tfidf_vectors.pickle", "rb"))
-        y = convert_y(y)
-        print("TF-IDF Model Created")
-    with open("./check_data_present/is_vectorizer_created", "w") as fout:
-        fout.write("True")
+            print("Did not find vectorizer.")
+            X = create_model(X)
+    else:
+        print("Vectorizer Found.")
+        X = load_model()
+
+    y = convert_y(y)
+    print("TF-IDF Model Created")
     return sparse.lil_matrix(X).toarray(), y
 
 ##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
 ##### Hyperparams: 
 def word2vec(X, y):
+
+    def load_model():
+        print("Loading word vectors...")
+        return pickle.load(open("./preencoded_embeddings/word2vec_reviews.pickle", "rb"))
+    def create_model(X):
+        vectorized_reviews = []
+        for index, review in enumerate(X):
+            avg_vector = np.zeros(shape=(300))
+            for token in tokenize(review):
+                avg_vector += nlp(token).vector
+            avg_vector = avg_vector / len(X)
+            vectorized_reviews.append(avg_vector)
+            print(f"Review {index}: Done")
+        pickle.dump(vectorized_reviews, open("./preencoded_embeddings/word2vec_reviews.pickle", "wb"))
+        return vectorized_reviews
+
     print("Starting Word2Vec Model")
-    with open("./check_data_present/is_vectorizer_created", "r") as fin:
-        if ('False' in fin.read()):
-            print("Using pretrained Spacy vectors to train model")
-            print("No reviews found. Converting reviews to vectors...")
-            vectorized_reviews = []
-            for index, review in enumerate(X):
-                avg_vector = np.zeros(shape=(300))
-                for token in tokenize(review):
-                    avg_vector += nlp(token).vector
-                avg_vector = avg_vector / len(X)
-                vectorized_reviews.append(avg_vector)
-                print(f"Review {index}: Done")
-            pickle.dump(vectorized_reviews, open("./preencoded_embeddings/word2vec_reviews.pickle", "wb"))
+    if create_new_vectors:
+        if os.path.isfile("./preencoded_embeddings/word2vec_reviews.pickle"):
+            user_input = input("Found vectorizer. Are you sure you still want to make a new vectorizer? (Y/N)")
+            if user_input == "N":
+                X = load_model()
+            elif user_input == "Y":
+                os.remove("./preencoded_embeddings/word2vec_reviews.pickle")
+                create_model(X)
+            else:
+                print("Input not in format specified")
         else:
-            print("Vectorized reviews found. Loading word vectors...")
-            vectorized_reviews = pickle.load(open("./preencoded_embeddings/word2vec_reviews.pickle", "rb"))
+            print("Did not find vectorizer")
+            X = create_model(X)
+    else:
+        X = load_model()
     y = convert_y(y)    
     print("Word2Vec Model Created")
-    with open("./check_data_present/is_vectorizer_created", "w") as fout:
-        fout.write("True")
-    return normalize(np.array(vectorized_reviews)), y
+    return normalize(np.array(X)), y
 
 ##### BERT Language Model
 
@@ -204,8 +242,8 @@ def neural_network(X, y, architecture_id):
 # %%
 ##### Applying Models And Printing Accuracy #####
 
-X, y = bag_of_words(imdb['review'], imdb['sentiment'])
-y_test, y_pred = neural_network(X, y, 2)
+X, y = word2vec(imdb['review'], imdb['sentiment'])
+y_test, y_pred = neural_network(X, y, 1)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
