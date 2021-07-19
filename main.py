@@ -1,7 +1,7 @@
 # %%
 ##### Global Variables ######
-create_new_vectors = False
-data_size = 1500
+create_new_vectors = True
+data_size = 5000
 
 # %%
 ###### Import Libraries ######
@@ -16,6 +16,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import spacy
+from tensorflow.python.keras.layers.normalization_v2 import BatchNormalization
 nlp = spacy.load("en_core_web_md", exclude=["parser", "ner", "textcat"])
 
 import pickle
@@ -68,10 +69,19 @@ def bag_of_words(X, y):
     def load_model():
         print("Loading vectorizer...")
         return pickle.load(open("./preencoded_embeddings/bow_transformer_vectors.pickle", "rb"))
+    
     def create_model(X_data):
         print("Creating vectorizer...")
         bow_transformer = CountVectorizer(analyzer=tokenize, max_features=2000).fit(X_data)
+
+        # Dump tranformer in transformers folder
+        if not os.isdir("vectorizers"): os.mkdir("vectorizers")
+        pickle.dump(bow_transformer, open("./vectorizers/bow_tranformer", "wb"))
+
         X_data = bow_transformer.transform(X_data)
+
+        # Dump data in preencoded embeddings folder
+        if not os.isdir("preencoded_embeddings"): os.mkdir("preencoded_embeddings")
         pickle.dump(X_data, open("./preencoded_embeddings/bow_transformer_vectors.pickle", "wb"))
         return X_data
 
@@ -107,7 +117,15 @@ def tf_idf(X, y):
     def create_model(X_data):
         print("Creating vectorizer...")
         tfidf_transformer = TfidfVectorizer(analyzer=tokenize, max_features=2000).fit(X_data)
+
+        # Dump tranformer in transformers folder
+        if not os.isdir("vectorizers"): os.mkdir("transformers")
+        pickle.dump(tfidf_transformer, open("./transformers/bow_tranformer", "wb"))
+
         X_data = tfidf_transformer.transform(X_data)
+
+        # Dump data in preencoded embeddings folder
+        if not os.isdir("preencoded_embeddings"): os.mkdir("preencoded_embeddings")
         pickle.dump(X_data, open("./preencoded_embeddings/tfidf_vectors.pickle", "wb"))
         return X_data
 
@@ -135,7 +153,7 @@ def tf_idf(X, y):
 
 ##### Pre-trained Word Embeddings (Word2Vec Twitter Model)
 ##### Hyperparams: 
-@lru_cache(max_size=50000)
+@lru_cache(maxsize=50000)
 def word2vec(X, y):
     def load_model():
         print("Loading word vectors...")
@@ -177,7 +195,7 @@ def logistic_regression(X, y):
     logistic_model.fit(X_train, y_train)
     y_pred = logistic_model.predict(X_test)
     print("Logistic Regression Model created")
-    return y_test, y_pred
+    return y_test, y_pred, logistic_model
 
 ##### K-Nearest-Neighbours Classifier
 ##### Hyperparams: n_neighbours, train_test_split
@@ -188,7 +206,7 @@ def knn_classifier(X, y, number_neighbors):
     knn_classifier.fit(X_train, y_train)
     y_pred = knn_classifier.predict(X_test)
     print("KNN Classifier created")
-    return y_test, y_pred
+    return y_test, y_pred, knn_classifier
 
 ##### Naive Bayes Classifier
 ##### Hyperparams: train_test_split
@@ -199,7 +217,7 @@ def naive_bayes(X, y):
     nb_model.fit(X_train, y_train)
     y_pred = nb_model.predict(X_test)
     print("Naive Bayes Classifier created")
-    return y_test, y_pred
+    return y_test, y_pred,nb_model
 
 ##### Neural Network
 ##### Hyperparams: train_test_split, Architecture, Optimizer: Learning Rate, Epochs, Batch Size, Initial Weights, Initial Biases
@@ -211,7 +229,9 @@ def neural_network(X, y, architecture_id):
     if architecture_id == 1:
         model = keras.Sequential([
                 keras.layers.Dense(300, activation="tanh", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+                keras.layers.BatchNormalization(),
                 keras.layers.Dense(150, activation="sigmoid", kernel_initializer=keras.initializers.RandomUniform(minval=-1, maxval=1), bias_initializer=keras.initializers.TruncatedNormal(mean=0, stddev=0.5)),
+                keras.layers.BatchNormalization(),
                 keras.layers.Dense(1, activation="sigmoid")
         ])
         model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
@@ -229,7 +249,7 @@ def neural_network(X, y, architecture_id):
     y_pred = model.predict(X_test)
     argmax_predictions = np.array([round(array[0]) for array in y_pred])
     print("Neural Network Created")
-    return y_test, argmax_predictions
+    return y_test, argmax_predictions, model
 
 # %%
 ##### Applying Models And Printing Accuracy #####
@@ -237,7 +257,7 @@ def neural_network(X, y, architecture_id):
 start = time()
 X, y = word2vec(tuple(imdb['review']), tuple(imdb['sentiment']))
 end = time()
-y_test, y_pred = neural_network(X, y, 1)
+y_test, y_pred, model = logistic_regression(X, y)
 
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
@@ -245,6 +265,12 @@ recall = recall_score(y_test, y_pred)
 
 print("Accuracy: ", round(accuracy, 2), ", Precision: ", round(precision, 2), ", Recall: ", round(recall, 2))
 print(f"Time taken for word2vc: {end - start}")
+
+model_save_user_input = input("Do you want to save this model? (Y/N)")
+if model_save_user_input.upper() == "Y":
+    if not os.path.isdir("./models"): os.mkdir("./models")
+    filename = input("What should the filename of the model be?")
+    pickle.dump(model, open(os.path.join("models", filename + ".pickle"), "wb"))
 
 ##### KNN Classifier Implementation
 # max_accuracy = -1
